@@ -1,58 +1,81 @@
 import scala.collection.mutable
 
 object Main {
-  sealed trait LogicalExpression
+  private sealed trait LogicalExpression
 
-  case class And(left: LogicalExpression, right: LogicalExpression) extends LogicalExpression
+  private case class And(left: LogicalExpression, right: LogicalExpression) extends LogicalExpression
 
-  case class Or(left: LogicalExpression, right: LogicalExpression) extends LogicalExpression
+  private case class Or(left: LogicalExpression, right: LogicalExpression) extends LogicalExpression
 
-  case class Not(expr: LogicalExpression) extends LogicalExpression
+  private case class Not(expr: LogicalExpression) extends LogicalExpression
 
-  case class Variable(name: String) extends LogicalExpression
+  private case class Variable(name: String) extends LogicalExpression
 
-  case object True extends LogicalExpression
+  private case object True extends LogicalExpression
 
-  case object False extends LogicalExpression
+  private case object False extends LogicalExpression
 
-  case class TruthTableRow(variables: Map[String, Boolean], result: Boolean)
+  private case class TruthTableRow(variables: Map[String, Boolean], result: Boolean)
 
-  def truthTable(expr: LogicalExpression): mutable.LinkedHashSet[TruthTableRow] = expr match {
-    case And(left, right) =>
-      val leftTruthTable = truthTable(left)
-      val rightTruthTable = truthTable(right)
-      for {
-        l <- leftTruthTable
-        r <- rightTruthTable
-      } yield {
-        TruthTableRow(l.variables ++ r.variables, l.result && r.result)
-      }
-
-    case Or(left, right) =>
-      val leftTruthTable = truthTable(left)
-      val rightTruthTable = truthTable(right)
-      for {
-        l <- leftTruthTable
-        r <- rightTruthTable
-      } yield {
-        TruthTableRow(l.variables ++ r.variables, l.result || r.result)
-      }
-
-    case Not(inner) =>
-      val innerTruthTable = truthTable(inner)
-      innerTruthTable.map(row => row.copy(result = !row.result))
-
-    case Variable(name) =>
-      mutable.LinkedHashSet(TruthTableRow(Map(name -> true), true), TruthTableRow(Map(name -> false), false))
-
-    case True =>
-      mutable.LinkedHashSet(TruthTableRow(Map("1" -> true), true))
-
-    case False =>
-      mutable.LinkedHashSet(TruthTableRow(Map("0" -> false), false))
+  private def getTruthTableRow(rightTable: TruthTableRow, leftTable: TruthTableRow, operation: (Boolean, Boolean)=>Boolean): TruthTableRow = {
+    val intersection = leftTable.variables.keySet.intersect(rightTable.variables.keySet)
+    if (leftTable.variables == rightTable.variables || intersection == Set.empty) {
+      TruthTableRow(leftTable.variables ++ rightTable.variables, operation(leftTable.result, rightTable.result))
+    }
+    else {
+      TruthTableRow(Map.empty, result = false)
+    }
   }
 
-  def isPerfectDisjunctiveNormalForm(expr: LogicalExpression): Boolean = {
+  private def removeInvalidRowsFromTruthTable(truthTable: mutable.LinkedHashSet[TruthTableRow], allVariables: Set[String]): mutable.LinkedHashSet[TruthTableRow] = {
+    truthTable.filter( element => {
+      element.variables.keySet == allVariables
+    })
+  }
+
+  private def truthTable(expr: LogicalExpression): mutable.LinkedHashSet[TruthTableRow] = {
+    val allVariables = getVariables(expr)
+    var result: mutable.LinkedHashSet[TruthTableRow] = mutable.LinkedHashSet.empty
+
+    result = expr match {
+      case And(left, right) =>
+        val leftTruthTable = truthTable(left)
+        val rightTruthTable = truthTable(right)
+        for {
+          l <- leftTruthTable
+          r <- rightTruthTable
+        } yield {
+          getTruthTableRow(r, l, (b1, b2) => b1 && b2)
+        }
+
+      case Or(left, right) =>
+        val leftTruthTable = truthTable(left)
+        val rightTruthTable = truthTable(right)
+        for {
+          l <- leftTruthTable
+          r <- rightTruthTable
+        } yield {
+          getTruthTableRow(r, l, (b1, b2) => b1 || b2)
+        }
+
+      case Not(inner) =>
+        val innerTruthTable = truthTable(inner)
+        innerTruthTable.map(row => row.copy(result = !row.result))
+
+      case Variable(name) =>
+        mutable.LinkedHashSet(TruthTableRow(Map(name -> true), result = true), TruthTableRow(Map(name -> false), result = false))
+
+      case True =>
+        mutable.LinkedHashSet(TruthTableRow(Map("1" -> true), result = true))
+
+      case False =>
+        mutable.LinkedHashSet(TruthTableRow(Map("0" -> false), result = false))
+    }
+
+    removeInvalidRowsFromTruthTable(result, allVariables)
+  }
+
+  private def isPerfectDisjunctiveNormalForm(expr: LogicalExpression): Boolean = {
     val allVariables = getVariables(expr)
 
     def isPerfectDisjunctiveNormalFormHelper(expr: LogicalExpression): Boolean = expr match {
@@ -86,7 +109,7 @@ object Main {
   }
 
 
-  def getVariables(expr: LogicalExpression): Set[String] = expr match {
+  private def getVariables(expr: LogicalExpression): Set[String] = expr match {
     case Variable(name) =>
       Set(name)
     case And(left, right) =>
@@ -99,7 +122,7 @@ object Main {
       Set.empty
   }
 
-  def isLogicalExpressionsEquivalent(exprLeft: LogicalExpression, exprRight: LogicalExpression): Boolean = {
+  private def isLogicalExpressionsEquivalent(exprLeft: LogicalExpression, exprRight: LogicalExpression): Boolean = {
     val truthTableLeft = truthTable(exprLeft)
     val truthTableRight = truthTable(exprRight)
     truthTableLeft == truthTableRight
@@ -109,9 +132,71 @@ object Main {
     truthTableTest()
     PDNFTest()
     equivalentTest()
+    moreComplexTruthTableTest()
+    taskTest()
   }
 
-  def equivalentTest(): Unit = {
+  private def moreComplexTruthTableTest(): Unit = {
+    println()
+    println()
+    println("=======================================")
+    println("truthTable method test but more complex")
+    println("=======================================")
+    println()
+    val formula0 = And(Or(And(Variable("A"), Not(Variable("C"))), And(Not(Variable("A")), Variable("C"))), Variable("B"))
+    val truthTable0 = truthTable(formula0)
+    truthTable0.foreach(println)
+    println(truthTable0.size)
+    println()
+
+    val formula1 = Or(And(Variable("A"), And(Variable("B"), Not(Variable("C")))),
+      And(Not(Variable("A")), And(Variable("B"), Variable("C"))))
+    val truthTable1 = truthTable(formula1)
+    truthTable1.foreach(println)
+    println(truthTable1.size)
+    println()
+  }
+
+  private def taskTest(): Unit = {
+    println()
+    println()
+    println("=============")
+    println("Use case test")
+    println("=============")
+    println()
+
+    val formula0 = And(
+      Or(
+        And(
+          Variable("A"),
+          Not(Variable("C")
+          )
+        ),
+        And(
+          Not(Variable("A")),
+          Variable("C")
+        )
+      ),
+      Variable("B")
+      )
+    println("Here given logical expression:")
+    println(formula0)
+    println("Make it to the Perfect Disjunctive Normal Form.")
+    println()
+
+    println("User's answer:")
+    val formula1 = Or(And(Variable("A"), And(Variable("B"), Not(Variable("C")))),
+                      And(Not(Variable("A")), And(Variable("B"), Variable("C"))))
+    println(formula1)
+    println()
+    println("Result:")
+    println(isLogicalExpressionsEquivalent(formula0, formula1) && isPerfectDisjunctiveNormalForm(formula1))
+    println()
+    println("is disjunctive: " + isPerfectDisjunctiveNormalForm(formula1))
+    println("is equal: " + isLogicalExpressionsEquivalent(formula0, formula1))
+  }
+
+  private def equivalentTest(): Unit = {
     println()
     println()
     println("==========================================")
@@ -146,7 +231,7 @@ object Main {
     println()
   }
 
-  def PDNFTest(): Unit = {
+  private def PDNFTest(): Unit = {
     println()
     println()
     println("==========================================")
@@ -161,7 +246,7 @@ object Main {
     println(isPerfectDisjunctiveNormalForm(disjunctive))
   }
 
-  def truthTableTest(): Unit ={
+  private def truthTableTest(): Unit ={
     println()
     println()
     println("======================")
@@ -169,7 +254,7 @@ object Main {
     println("======================")
     println()
     //val formula = And(Or(Variable("A"), Variable("B")), Not(Or(Variable("C"), True)))
-    val formula = Or(And(Or(Variable("A"), Variable("B")), Not(Variable("C"))), Variable("A"))
+    val formula = Or(And(Or(And(Or(Variable("A"), Variable("B")), Not(Variable("C"))), Variable("A")), True), False)
     val truthTableResult = truthTable(formula)
     println("Таблица истинности для формулы:")
     truthTableResult.foreach(println)
