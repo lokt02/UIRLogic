@@ -1,2 +1,13 @@
+project/project
+project/target
+target
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+*.sublime-workspace
+/.bsp/
 
-.idea/
+node_modules/

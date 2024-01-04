@@ -18,8 +18,12 @@ object Main {
   private case class TruthTableRow(variables: Map[String, Boolean], result: Boolean)
 
   private def getTruthTableRow(rightTable: TruthTableRow, leftTable: TruthTableRow, operation: (Boolean, Boolean)=>Boolean): TruthTableRow = {
-    val intersection = leftTable.variables.keySet.intersect(rightTable.variables.keySet)
-    if (leftTable.variables == rightTable.variables || intersection == Set.empty) {
+    val keysIntersection = leftTable.variables.keySet.intersect(rightTable.variables.keySet)
+    //val variablesIntersection = leftTable.variables.toSet.intersect(rightTable.variables.toSet)
+    val rightSet = rightTable.variables.toSet
+    val leftSet = leftTable.variables.toSet
+    if (leftTable.variables == rightTable.variables || keysIntersection == Set.empty ||
+      ( (rightSet subsetOf leftSet) || (leftSet subsetOf rightSet) ) ) {
       TruthTableRow(leftTable.variables ++ rightTable.variables, operation(leftTable.result, rightTable.result))
     }
     else {
@@ -103,6 +107,8 @@ object Main {
         true
       case And(left, right) =>
         isPerfectDisjunctiveNormalFormHelperAfterMetConjugation(left) && isPerfectDisjunctiveNormalFormHelperAfterMetConjugation(right)
+      case _ =>
+        false
     }
 
     isPerfectDisjunctiveNormalFormHelper(expr)
@@ -134,6 +140,43 @@ object Main {
     equivalentTest()
     moreComplexTruthTableTest()
     taskTest()
+    truthTableVariableEqualityTest()
+  }
+
+  private def truthTableVariableEqualityTest(): Unit = {
+    println()
+    println()
+    println("=============================================")
+    println("variables in LogicalExpression behaviour test")
+    println("=============================================")
+    println()
+
+    val formula0 = And(Or(Variable("A"), Variable("B")), Variable("A"))
+    val truthTableResult0 = truthTable(formula0)
+    truthTableResult0.foreach(println)
+    println()
+
+    val formula1 = And(And(Variable("A"), Variable("B")), Variable("B"))
+    val truthTableResult1 = truthTable(formula1)
+    truthTableResult1.foreach(println)
+    println()
+
+    println(isLogicalExpressionsEquivalent(formula0, formula1))
+    println()
+
+
+    val formula2 = And(Or(Variable("A"), Variable("B")), Variable("C"))
+    val truthTableResult2 = truthTable(formula2)
+    truthTableResult2.foreach(println)
+    println()
+
+    val formula3 = And(Or(Variable("C"), Variable("A")), Variable("B"))
+    val truthTableResult3 = truthTable(formula3)
+    truthTableResult3.foreach(println)
+    println()
+
+    println(isLogicalExpressionsEquivalent(formula2, formula3))
+    println()
   }
 
   private def moreComplexTruthTableTest(): Unit = {

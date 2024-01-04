@@ -1,3 +1,3 @@
-[debug] not up to date. inChanged = true, force = false
-[debug] Updating ProjectRef(uri("file:/C:/Users/lokt0/IdeaProjects/UIRLogic/project/"), "uirlogic-build")...
-[debug] Done updating ProjectRef(uri("file:/C:/Users/lokt0/IdeaProjects/UIRLogic/project/"), "uirlogic-build")
+[0m[[0m[0mdebug[0m] [0m[0mnot up to date. inChanged = true, force = false[0m
+[0m[[0m[0mdebug[0m] [0m[0mUpdating ProjectRef(uri("file:/E:/_repos/stusys-logic-props/project/"), "stusys-logic-props-build")...[0m
+[0m[[0m[0mdebug[0m] [0m[0mDone updating ProjectRef(uri("file:/E:/_repos/stusys-logic-props/project/"), "stusys-logic-props-build")[0m
